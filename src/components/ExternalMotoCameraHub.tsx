@@ -105,7 +105,9 @@ export const ExternalMotoCameraHub: React.FC<ExternalMotoCameraHubProps> = ({
       setVideoDevices(videoInputs);
       if (videoInputs.length > 0 && !selectedDeviceId) {
         const usbCam = videoInputs.find((d) =>
-          /usb|uvc|external|capture|endoscope|dash|hdmi/i.test(d.label)
+          /usb|uvc|external|capture|endoscope|dash|hdmi|akaso|gopro|novatek|webcam/i.test(
+            d.label
+          )
         );
         setSelectedDeviceId(
           usbCam?.deviceId || videoInputs[videoInputs.length - 1].deviceId
@@ -695,16 +697,16 @@ export const ExternalMotoCameraHub: React.FC<ExternalMotoCameraHubProps> = ({
                 ]
               : [
                   {
+                    label: 'AKASO V50 / Novatek (192.168.1.254)',
+                    url: 'http://192.168.1.254/DCIM',
+                  },
+                  {
+                    label: 'AKASO / Action Cam AP (192.168.42.1)',
+                    url: 'http://192.168.42.1/live',
+                  },
+                  {
                     label: 'Vehicle Hotspot (192.168.4.1)',
                     url: 'http://192.168.4.1:81/stream',
-                  },
-                  {
-                    label: 'VSYSTO / Dashcam (192.168.1.254)',
-                    url: 'http://192.168.1.254:8192',
-                  },
-                  {
-                    label: 'Action Cam AP (192.168.42.1)',
-                    url: 'http://192.168.42.1/live',
                   },
                 ]
             ).map((preset) => (
@@ -735,17 +737,29 @@ export const ExternalMotoCameraHub: React.FC<ExternalMotoCameraHubProps> = ({
                   className="max-h-56 mx-auto rounded-lg border border-slate-800"
                 />
               ) : (
-                <div className="p-4 text-xs text-amber-300 space-y-2">
+                <div className="p-4 text-xs text-amber-300 space-y-2 text-left">
                   <p className="font-semibold">
                     {language === 'id'
-                      ? 'Stream IP lokal belum terjangkau langsung (Pastikan HP berada di jaringan Wi-Fi yang sama dengan kamera).'
-                      : 'Local IP stream not directly reachable yet (Verify your smartphone is on the same Wi-Fi LAN or camera hotspot).'}
+                      ? 'Mengapa Kamera Wi-Fi (seperti AKASO V50 / GoPro) Tidak Muncul Langsung di Browser?'
+                      : 'Why Doesn’t a Wi-Fi Action Cam (like AKASO V50 / GoPro) Appear Directly in the Browser?'}
                   </p>
-                  <p className="text-slate-300 text-[11px]">
-                    {language === 'id'
-                      ? 'Solusi Cepat: Simpan klip kejadian dari aplikasi kamera rumah/kendaraan Anda ke galeri HP, lalu klik tombol Pilih Klip Video di bawah untuk memutarnya di Pemutar Media bawaan.'
-                      : 'Quick Workaround: Export the incident clip from your home/vehicle camera app to your phone gallery, then click Select Video Clip below to play and scrub it in the built-in Media Player.'}
-                  </p>
+                  <ul className="list-disc pl-4 text-slate-300 text-[11px] space-y-1">
+                    <li>
+                      {language === 'id'
+                        ? 'Keamanan Browser (HTTPS → HTTP) & Protokol RTSP: Kamera AKASO V50 menyiarkan preview via RTSP lokal tanpa internet, yang diblokir oleh Chrome/Safari.'
+                        : 'Browser Security (HTTPS → HTTP) & RTSP Protocol: Action cams like the AKASO V50 broadcast local RTSP over an offline Wi-Fi hotspot, which mobile browsers block.'}
+                    </li>
+                    <li>
+                      {language === 'id'
+                        ? 'Cara Terbaik 1 (Wi-Fi): Simpan klip dari aplikasi AKASO GO ke Galeri HP, nyalakan internet kembali, lalu pilih video di Tab 4 (MicroSD / Klip).'
+                        : 'Best Way 1 (Wi-Fi): Save the clip from the AKASO GO app to your phone gallery, reconnect to 4G/Wi-Fi, then open it in Tab 4 (MicroSD / Clip).'}
+                    </li>
+                    <li>
+                      {language === 'id'
+                        ? 'Cara Terbaik 2 (Kabel USB / MicroSD): Colokkan kabel USB ke AKASO V50 lalu pilih mode "PC Camera" (Tab 3 USB-C Live) atau "Mass Storage / Card Reader" untuk membuka folder DCIM/Movie.'
+                        : 'Best Way 2 (USB Cable / MicroSD): Plug in via USB and pick "PC Camera" on the AKASO screen (Tab 3 USB-C Live), or use a MicroSD reader / "Mass Storage" mode to open DCIM/Movie/*.MP4.'}
+                    </li>
+                  </ul>
                 </div>
               )}
             </div>
@@ -784,8 +798,8 @@ export const ExternalMotoCameraHub: React.FC<ExternalMotoCameraHubProps> = ({
         <div className="space-y-3">
           <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
             {language === 'id'
-              ? 'Hubungkan kamera eksternal motor/kendaraan Anda (USB UVC / Action Cam / Kartu Capture) ke port USB-C HP menggunakan adaptor OTG. Pilih perangkat di bawah untuk menampilkan siaran langsung dan mengekstrak 12 frame paling tajam.'
-              : 'Plug your vehicle or motorcycle external camera (USB UVC mini cam, action cam, or capture dongle) into your phone’s USB-C port via an OTG adapter. Select the camera below to stream live and burst-extract the 12 sharpest frames.'}
+              ? 'Hubungkan kamera eksternal (AKASO V50 dalam mode "PC Camera", USB UVC, atau HDMI Capture) ke port USB-C HP/laptop menggunakan kabel data / adaptor OTG. Pilih perangkat di bawah untuk siaran langsung dan ambil 12 frame tertajam.'
+              : 'Plug your external camera (AKASO V50 set to "PC Camera" mode, USB UVC mini cam, or capture dongle) into your phone/laptop via USB data cable / OTG adapter. Select it below to stream live and burst-extract 12 sharpest frames.'}
           </p>
 
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
@@ -924,23 +938,27 @@ export const ExternalMotoCameraHub: React.FC<ExternalMotoCameraHubProps> = ({
 
             <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3">
               <div className="font-bold text-slate-900 dark:text-white mb-1">
-                {language === 'id' ? 'B. Kamera Kendaraan (Wi-Fi/BT)' : 'B. Vehicle Cam Wi-Fi Clip'}
+                {language === 'id'
+                  ? 'B. AKASO V50 / GoPro (Aplikasi Wi-Fi)'
+                  : 'B. AKASO V50 / GoPro (Wi-Fi App)'}
               </div>
               <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
                 {language === 'id'
-                  ? 'Transfer klip 1–3 menit dari kamera motor/mobil via Wi-Fi Direct, lalu putar dengan gerak lambat 0.25x.'
-                  : 'Transfer the 1–3 min loop clip from your vehicle camera over Wi-Fi Direct and inspect it at 0.25x slow-motion.'}
+                  ? 'Sambungkan Wi-Fi ke AKASO V50, unduh klip via aplikasi AKASO GO ke Galeri HP, lalu buka file .MP4 di Pemutar Media ini.'
+                  : 'Join the AKASO V50 Wi-Fi, save the clip to your phone Gallery using the AKASO GO app, then open the .MP4 here.'}
               </p>
             </div>
 
             <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3">
               <div className="font-bold text-slate-900 dark:text-white mb-1">
-                {language === 'id' ? 'C. Card Reader MicroSD USB-C' : 'C. USB-C MicroSD Reader'}
+                {language === 'id'
+                  ? 'C. Kartu MicroSD / Kabel USB (DCIM/Movie)'
+                  : 'C. MicroSD Card / USB Mass Storage'}
               </div>
               <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
                 {language === 'id'
-                  ? 'Pasang kartu MicroSD kamera ke pembaca kartu USB-C OTG di HP dan pilih file .MP4/.MOV langsung.'
-                  : 'Insert the camera’s microSD card into a USB-C OTG reader and open the .MP4/.MOV file directly in the Media Player.'}
+                  ? 'Pasang kartu MicroSD AKASO ke slot/card reader USB-C (atau colok kabel USB mode Mass Storage), lalu pilih folder DCIM → Movie → .MP4.'
+                  : 'Insert the AKASO microSD card into your phone/USB-C reader (or plug in USB Mass Storage mode), then pick DCIM → Movie → .MP4.'}
               </p>
             </div>
           </div>
