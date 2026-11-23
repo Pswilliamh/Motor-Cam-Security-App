@@ -1,0 +1,201 @@
+{
+  "entities": {
+    "AdminUser": {
+      "title": "AdminUser",
+      "description": "Authorized administrator record for MotoGuard Incident Helper.",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "description": "UID of the admin user matching request.auth.uid",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "role": {
+          "type": "string",
+          "description": "Role label for the admin account",
+          "enum": ["admin"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when the admin record was created"
+        }
+      },
+      "required": ["ownerId", "role", "createdAt"]
+    },
+    "IncidentReport": {
+      "title": "IncidentReport",
+      "description": "Cloud-synchronized motorcycle incident documentation report (metadata and structured AI summary, zero video storage).",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "description": "UID of the authenticated admin or owner who created the report",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "dateTime": {
+          "type": "string",
+          "description": "Incident date and time string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "location": {
+          "type": "string",
+          "description": "Location of the incident (RT/RW, street, parking area)",
+          "minLength": 1,
+          "maxLength": 300
+        },
+        "motorcycleMakeModel": {
+          "type": "string",
+          "description": "Motorcycle make and model",
+          "minLength": 1,
+          "maxLength": 150
+        },
+        "motorcycleColor": {
+          "type": "string",
+          "description": "Motorcycle color description",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "plateNumber": {
+          "type": "string",
+          "description": "Motorcycle license plate number",
+          "minLength": 1,
+          "maxLength": 32
+        },
+        "cameraSource": {
+          "type": "string",
+          "description": "External motorcycle camera, vehicle camera, or home CCTV source used",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "summaryText": {
+          "type": "string",
+          "description": "Formatted incident visual summary report text",
+          "minLength": 1,
+          "maxLength": 5000
+        },
+        "status": {
+          "type": "string",
+          "description": "Verification status of the incident report",
+          "enum": ["draft", "verified", "archived"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of creation"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of last update"
+        }
+      },
+      "required": [
+        "ownerId",
+        "dateTime",
+        "location",
+        "motorcycleMakeModel",
+        "motorcycleColor",
+        "plateNumber",
+        "cameraSource",
+        "summaryText",
+        "status",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "CameraProfile": {
+      "title": "CameraProfile",
+      "description": "Saved configuration profile for a Home Security Wi-Fi camera or Vehicle/Motorcycle camera (Wi-Fi, Bluetooth, USB OTG).",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "description": "UID of the admin owner",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "cameraName": {
+          "type": "string",
+          "description": "Human-readable name for the home or vehicle camera",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "mountPosition": {
+          "type": "string",
+          "description": "Where the camera is mounted (motorcycle, vehicle, or home)",
+          "enum": [
+            "front_handlebar",
+            "rear_tail",
+            "helmet_mount",
+            "side_fairing",
+            "home_security",
+            "vehicle_cabin"
+          ]
+        },
+        "connectionType": {
+          "type": "string",
+          "description": "How the external camera connects to the smartphone",
+          "enum": [
+            "usb_otg_uvc",
+            "wifi_stream",
+            "microsd_reader",
+            "home_wifi_ip",
+            "vehicle_bt_wifi"
+          ]
+        },
+        "streamUrl": {
+          "type": "string",
+          "description": "Local Wi-Fi stream, RTSP/HTTP gateway URL, Bluetooth device name, or USB label",
+          "minLength": 1,
+          "maxLength": 300
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when created"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when updated"
+        }
+      },
+      "required": [
+        "ownerId",
+        "cameraName",
+        "mountPosition",
+        "connectionType",
+        "streamUrl",
+        "createdAt",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/admins/{adminId}": {
+      "schema": {
+        "$ref": "#/entities/AdminUser"
+      },
+      "description": "Admin directory mapping admin UIDs to admin role documents."
+    },
+    "/incident_reports/{reportId}": {
+      "schema": {
+        "$ref": "#/entities/IncidentReport"
+      },
+      "description": "Cloud-saved incident summary reports managed by the authenticated owner/admin."
+    },
+    "/camera_profiles/{cameraId}": {
+      "schema": {
+        "$ref": "#/entities/CameraProfile"
+      },
+      "description": "Saved home security and vehicle/motorcycle external camera connection profiles."
+    }
+  }
+}

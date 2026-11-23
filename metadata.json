@@ -1,0 +1,6 @@
+{
+  "name": "MotoGuard Incident Helper (Bantu Cek Curanmor)",
+  "description": "Mobile-first bilingual (EN/ID) Progressive Web App for on-device CCTV/dashcam frame extraction, Laplacian sharpness filtering, and Gemini Vision incident documentation with zero server video storage.",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

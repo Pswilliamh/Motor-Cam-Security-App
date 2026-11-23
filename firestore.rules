@@ -1,0 +1,219 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 1. Global Safety Net: Default-deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // 2. Hardened Global Primitives
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedUser() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isBootstrappedAdmin() {
+      return isVerifiedUser() && request.auth.token.email == 'PsWilliamh@gmail.com';
+    }
+
+    function isAdmin() {
+      return isVerifiedUser() && (
+        isBootstrappedAdmin() ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    // 3. Entity Validation Blueprints
+    function isValidAdminUser(data) {
+      return data.keys().hasAll(['ownerId', 'role', 'createdAt']) &&
+        data.keys().hasOnly(['ownerId', 'role', 'createdAt']) &&
+        data.ownerId is string && data.ownerId.size() >= 1 && data.ownerId.size() <= 128 &&
+        data.ownerId.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.ownerId == request.auth.uid &&
+        data.role is string && data.role.size() <= 16 && data.role == 'admin' &&
+        data.createdAt is timestamp;
+    }
+
+    function isValidIncidentReport(data) {
+      return data.keys().hasAll([
+          'ownerId',
+          'dateTime',
+          'location',
+          'motorcycleMakeModel',
+          'motorcycleColor',
+          'plateNumber',
+          'cameraSource',
+          'summaryText',
+          'status',
+          'createdAt',
+          'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'ownerId',
+          'dateTime',
+          'location',
+          'motorcycleMakeModel',
+          'motorcycleColor',
+          'plateNumber',
+          'cameraSource',
+          'summaryText',
+          'status',
+          'createdAt',
+          'updatedAt'
+        ]) &&
+        data.ownerId is string && data.ownerId.size() >= 1 && data.ownerId.size() <= 128 &&
+        data.ownerId.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.ownerId == request.auth.uid &&
+        data.dateTime is string && data.dateTime.size() >= 1 && data.dateTime.size() <= 64 &&
+        data.location is string && data.location.size() >= 1 && data.location.size() <= 300 &&
+        data.motorcycleMakeModel is string && data.motorcycleMakeModel.size() >= 1 && data.motorcycleMakeModel.size() <= 150 &&
+        data.motorcycleColor is string && data.motorcycleColor.size() >= 1 && data.motorcycleColor.size() <= 100 &&
+        data.plateNumber is string && data.plateNumber.size() >= 1 && data.plateNumber.size() <= 32 &&
+        data.cameraSource is string && data.cameraSource.size() <= 120 &&
+        data.summaryText is string && data.summaryText.size() >= 1 && data.summaryText.size() <= 5000 &&
+        data.status is string && data.status.size() <= 20 &&
+        (data.status == 'draft' || data.status == 'verified' || data.status == 'archived') &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidCameraProfile(data) {
+      return data.keys().hasAll([
+          'ownerId',
+          'cameraName',
+          'mountPosition',
+          'connectionType',
+          'streamUrl',
+          'createdAt',
+          'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'ownerId',
+          'cameraName',
+          'mountPosition',
+          'connectionType',
+          'streamUrl',
+          'createdAt',
+          'updatedAt'
+        ]) &&
+        data.ownerId is string && data.ownerId.size() >= 1 && data.ownerId.size() <= 128 &&
+        data.ownerId.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.ownerId == request.auth.uid &&
+        data.cameraName is string && data.cameraName.size() >= 1 && data.cameraName.size() <= 100 &&
+        data.mountPosition is string && data.mountPosition.size() <= 32 &&
+        (
+          data.mountPosition == 'front_handlebar' ||
+          data.mountPosition == 'rear_tail' ||
+          data.mountPosition == 'helmet_mount' ||
+          data.mountPosition == 'side_fairing' ||
+          data.mountPosition == 'home_security' ||
+          data.mountPosition == 'vehicle_cabin'
+        ) &&
+        data.connectionType is string && data.connectionType.size() <= 32 &&
+        (
+          data.connectionType == 'usb_otg_uvc' ||
+          data.connectionType == 'wifi_stream' ||
+          data.connectionType == 'microsd_reader' ||
+          data.connectionType == 'home_wifi_ip' ||
+          data.connectionType == 'vehicle_bt_wifi'
+        ) &&
+        data.streamUrl is string && data.streamUrl.size() >= 1 && data.streamUrl.size() <= 300 &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    // 4. Collection Rules
+    match /admins/{adminId} {
+      allow get: if isVerifiedUser() && isValidId(adminId) && (request.auth.uid == adminId || isAdmin());
+      allow list: if isVerifiedUser() && resource.data.ownerId == request.auth.uid;
+      allow create: if isBootstrappedAdmin() &&
+        isValidId(adminId) &&
+        adminId == request.auth.uid &&
+        isValidAdminUser(incoming()) &&
+        incoming().createdAt == request.time;
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    match /incident_reports/{reportId} {
+      allow get: if isVerifiedUser() && isValidId(reportId) && (existing().ownerId == request.auth.uid || isAdmin());
+      allow list: if isVerifiedUser() && resource.data.ownerId == request.auth.uid;
+      allow create: if isVerifiedUser() &&
+        isValidId(reportId) &&
+        isValidIncidentReport(incoming()) &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+      allow update: if isVerifiedUser() &&
+        isValidId(reportId) &&
+        isValidIncidentReport(incoming()) &&
+        incoming().ownerId == existing().ownerId &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time &&
+        (existing().status != 'archived' || isAdmin()) &&
+        (
+          isAdmin() ||
+          (
+            existing().ownerId == request.auth.uid &&
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'dateTime',
+              'location',
+              'motorcycleMakeModel',
+              'motorcycleColor',
+              'plateNumber',
+              'cameraSource',
+              'summaryText',
+              'status',
+              'updatedAt'
+            ])
+          )
+        );
+      allow delete: if isVerifiedUser() && isValidId(reportId) && (existing().ownerId == request.auth.uid || isAdmin());
+    }
+
+    match /camera_profiles/{cameraId} {
+      allow get: if isVerifiedUser() && isValidId(cameraId) && (existing().ownerId == request.auth.uid || isAdmin());
+      allow list: if isVerifiedUser() && resource.data.ownerId == request.auth.uid;
+      allow create: if isVerifiedUser() &&
+        isValidId(cameraId) &&
+        isValidCameraProfile(incoming()) &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+      allow update: if isVerifiedUser() &&
+        isValidId(cameraId) &&
+        isValidCameraProfile(incoming()) &&
+        incoming().ownerId == existing().ownerId &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time &&
+        (
+          isAdmin() ||
+          (
+            existing().ownerId == request.auth.uid &&
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'cameraName',
+              'mountPosition',
+              'connectionType',
+              'streamUrl',
+              'updatedAt'
+            ])
+          )
+        );
+      allow delete: if isVerifiedUser() && isValidId(cameraId) && (existing().ownerId == request.auth.uid || isAdmin());
+    }
+  }
+}
